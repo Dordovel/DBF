@@ -14,6 +14,7 @@ class View : public Gtk::Window
 
 		Gtk::TreeModel::ColumnRecord _record;
 		std::vector<Gtk::TreeModelColumn<std::string>> _columns;
+		Gtk::TreeModelColumn<std::size_t> _id;
 
 		char* encoding = nullptr;
 
