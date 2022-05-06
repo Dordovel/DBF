@@ -13,3 +13,15 @@ add_executable(${PROJECT_NAME}
                 ${HEADER_FILE}
                 ${SOURCE_FILE}
                 main.cpp)
+
+find_package(PkgConfig)
+
+pkg_check_modules(GTKMM gtkmm-3.0)
+link_directories(${GTKMM_LIBRARY_DIRS})
+include_directories(${GTKMM_INCLUDE_DIRS})
+
+pkg_check_modules(ATKMM atkmm-1.6)
+link_directories(${ATKMM_LIBRARY_DIRS})
+include_directories(${ATKMM_INCLUDE_DIRS})
+
+target_link_libraries(${PROJECT_NAME} ${GTKMM_LIBRARIES})
