@@ -1,4 +1,3 @@
-#include <iostream>
 #include "./headers/dbf.hpp"
 #include "./converter.hpp"
 #include <langinfo.h>
@@ -9,9 +8,9 @@ int main()
 	char* encoding = nl_langinfo(CODESET);
 	DBF dbf_file;
 	dbf_file.loadDbf("./1.DBF");
-	std::vector<std::string> record = dbf_file.get_record(15);
-	dbf_file.add_record();
-	int count = dbf_file.get_record_count();
-	dbf_file.replace_record(count - 1, 2, "qwe");
+	//dbf_file.add_record();
+	//int count = dbf_file.get_record_count();
+	//dbf_file.replace_record(count - 1, "TABNUM", "qwe");
+	dbf_file.insert_record(16);
 	return EXIT_SUCCESS;
 }

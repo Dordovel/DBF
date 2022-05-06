@@ -55,6 +55,8 @@ class DBF
 
 		void loadDbfTableFields();
 		void loadDbfTableStructure();
+		void flushHeaderChange();
+		void end();
 
 	public:
 		void loadDbf(const std::string& filePath);
@@ -67,6 +69,7 @@ class DBF
 		int get_fields_count() const;
 		int get_record_count() const;
 		void add_record();
+		void insert_record(int record);
 		void delete_record(int record);
 		Header get_header_info() const;
 		Field get_field_info(int field) const;
