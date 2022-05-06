@@ -3,6 +3,12 @@
 #include <algorithm>
 #include "../headers/dbf.hpp"
 
+template <typename T, size_t G>
+size_t array_size(T(&array)[G])
+{
+	return G;
+}
+
 void DBF::loadDbfTableFields()
 {
 	//Размер заголовка = 32+32*(число_полей)+2
@@ -29,6 +35,7 @@ void DBF::loadDbfTableFields()
 
 void DBF::loadDbfTableStructure()
 {
+	this->_file.seekg(std::ios::beg);
 	this->_file.read((char*)&this->_header.Tag, sizeof(DBF::_Header_::Tag));
 	this->_file.read((char*)&this->_header.LastUpdate, sizeof(DBF::_Header_::LastUpdate));
 	this->_file.read((char*)&this->_header.FileSize, sizeof(DBF::_Header_::FileSize));
@@ -114,13 +121,13 @@ std::vector<std::string> DBF::get_record(int record)
 	return result;
 }
 
-void DBF::rename_field(int field, std::string_view newName)
+void DBF::rename_field(int field, std::string newName)
 {
 	if(field >= 0 && field < this->_fields.size())
 	{
 		const auto& replaced = this->_fields.at(field);
 
-		const std::size_t FieldWidth = std::size(replaced.Name);
+		const std::size_t FieldWidth = array_size(replaced.Name);
 
 		if(newName.size() <= FieldWidth)
 		{
@@ -158,7 +165,7 @@ void DBF::replace_record(int record, std::vector<std::string> new_record)
 	}
 }
 
-void DBF::replace_record(int record, int column, std::string_view new_record)
+void DBF::replace_record(int record, int column, std::string new_record)
 {
 	if(this->_header.FileSize > record)
 	{
@@ -185,7 +192,7 @@ void DBF::replace_record(int record, int column, std::string_view new_record)
 	}
 }
 
-void DBF::replace_record(int record, std::string_view column, std::string_view new_record)
+void DBF::replace_record(int record, std::string column, std::string new_record)
 {
 	if(this->_header.FileSize > record)
 	{

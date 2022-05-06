@@ -63,9 +63,9 @@ class DBF
 		std::unordered_map<std::string, std::string> get_record_with_names(int record);
 		std::vector<std::string> get_record(int record);
 		void replace_record(int record, std::vector<std::string> new_record);
-		void replace_record(int record, int column, std::string_view new_record);
-		void replace_record(int record, std::string_view column, std::string_view new_record);
-		void rename_field(int field, std::string_view newName);
+		void replace_record(int record, int column, std::string new_record);
+		void replace_record(int record, std::string column, std::string new_record);
+		void rename_field(int field, std::string newName);
 		int get_fields_count() const;
 		int get_record_count() const;
 		void add_record();
