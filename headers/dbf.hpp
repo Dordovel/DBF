@@ -76,6 +76,8 @@ class DBF
 		void pack();
 
 		DBF() = default;
+		DBF(DBF&& dbf) = default;
+		DBF& operator = (DBF&& dbf) = default;
 		~DBF();
 
 };

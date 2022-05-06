@@ -27,21 +27,10 @@ int main(int argc, char* argv[])
 	View* view = nullptr;
 	builder->get_widget_derived("MainWindow", view);
 
-	std::vector<std::string> fields;
-	const std::size_t fieldsCount = dbf_file.get_fields_count();
-	for(int i = 0; i < fieldsCount; ++i)
+	if(view != nullptr)
 	{
-		Field&& info = dbf_file.get_field_info(i);
-		fields.emplace_back(info.Name);
-	}
-
-	view->view_header(fields);
-
-	const std::size_t recordsCount = dbf_file.get_record_count();
-	for(int i = 0; i < recordsCount; ++i)
-	{
-		auto&& record = dbf_file.get_record(i);
-		view->view_record(record);
+		view->convert_from("CP866");
+		view->load(std::move(dbf_file));
 	}
 
 	app->run(*view);

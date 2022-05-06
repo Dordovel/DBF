@@ -2,9 +2,9 @@
 #include <iconv.h>
 #include <cstring>
 
-std::string convert_encoding(const std::string& src, const char* from, const char* to)
+std::string convert_encoding(const std::string& src, const std::string& from, const std::string& to)
 {
-	iconv_t convertHnd = iconv_open(to, from);
+	iconv_t convertHnd = iconv_open(to.c_str(), from.c_str());
 	if (convertHnd == (iconv_t)(-1))
 	{
 	  throw std::logic_error("unable to create convertion descriptor");
