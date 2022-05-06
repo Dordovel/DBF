@@ -94,9 +94,10 @@ std::unordered_map<std::string, std::string> DBF::get_record_with_names(int reco
 	{
 		char buffer[field.Width];
 		memset(buffer, '\0', field.Width);
-		this->_file.read(buffer, field.Width);
 
-		result.emplace(field.Name, std::string(buffer, field.Width));
+		std::streamsize size = this->_file.read(buffer, field.Width).gcount();
+
+		result.emplace(field.Name, std::string(buffer, size));
 	}
 	return result;
 }
@@ -113,9 +114,9 @@ std::vector<std::string> DBF::get_record(int record)
 		char buffer[field.Width];
 		memset(buffer, '\0', field.Width);
 
-		this->_file.read(buffer, field.Width);
+		std::streamsize size = this->_file.read(buffer, field.Width).gcount();
 
-		result.emplace_back(std::string(buffer, field.Width));
+		result.emplace_back(std::string(buffer, size));
 	}
 
 	return result;
