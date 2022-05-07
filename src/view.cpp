@@ -37,7 +37,7 @@ void View::view_header(std::vector<std::string> fields)
 
 	for(decltype (fields)::size_type i = 0; i < fields.size(); ++i)
 	{
-		this->_view->append_column_editable(fields[i], this->_columns[i]);
+		this->_view->append_column(fields[i], this->_columns[i]);
 	}
 }
 

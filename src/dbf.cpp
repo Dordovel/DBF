@@ -72,6 +72,7 @@ void DBF::loadDbf(const std::string& filePath)
 	{
 		this->loadDbfTableStructure();
 		this->loadDbfTableFields();
+		this->_cursor = this->_header.HeaderSize + this->_header.RecordSize + 1;
 	}
 }
 
@@ -85,10 +86,29 @@ DBF::~DBF()
 
 std::unordered_map<std::string, std::string> DBF::get_record_with_names(int record)
 {
-	std::unordered_map<std::string, std::string> result;
+	this->_cursor = this->_header.HeaderSize + (this->_header.RecordSize * record) + 1;
+	this->_file.seekg(_cursor, std::ios::beg);
 
-	int position = this->_header.HeaderSize + (this->_header.RecordSize * record) + 1;
-	this->_file.seekg(position, std::ios::beg);
+	return this->get_record_with_names();
+}
+
+std::vector<std::string> DBF::get_record(int record)
+{
+	this->_cursor = this->_header.HeaderSize + (this->_header.RecordSize * record) + 1;
+	this->_file.seekg(this->_cursor, std::ios::beg);
+
+	return this->get_record();
+}
+
+void DBF::move_to_next_record()
+{
+	this->_cursor = this->_cursor + this->_header.RecordSize + 1;
+	this->_file.seekg(this->_cursor, std::ios::cur);
+}
+
+std::unordered_map<std::string, std::string> DBF::get_record_with_names()
+{
+	std::unordered_map<std::string, std::string> result;
 
 	for(const DBF::_Field_& field : this->_fields)
 	{
@@ -102,12 +122,9 @@ std::unordered_map<std::string, std::string> DBF::get_record_with_names(int reco
 	return result;
 }
 
-std::vector<std::string> DBF::get_record(int record)
+std::vector<std::string> DBF::get_record()
 {
 	std::vector <std::string> result;
-
-	int position = this->_header.HeaderSize + (this->_header.RecordSize * record) + 1;
-	this->_file.seekg(position, std::ios::beg);
 
 	for(const DBF::_Field_& field : this->_fields)
 	{
