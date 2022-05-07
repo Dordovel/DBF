@@ -59,9 +59,10 @@ void DBF::end()
 {
 	const char EOF_record = 0x1A;
 	const int RecordSize = this->_header.RecordSize;
-	const int LastRecordTail = this->_header.HeaderSize + (RecordSize * this->_header.FileSize);
 
-	this->_file.seekg(LastRecordTail + RecordSize, std::ios::beg);
+	this->move_to_record(this->_header.FileSize);
+
+	this->_file.seekg(RecordSize, std::ios::cur);
 	this->_file.write(&EOF_record, sizeof (EOF_record));
 }
 
@@ -72,7 +73,7 @@ void DBF::loadDbf(const std::string& filePath)
 	{
 		this->loadDbfTableStructure();
 		this->loadDbfTableFields();
-		this->_cursor = this->_header.HeaderSize + this->_header.RecordSize + 1;
+		this->move_to_record(0);
 	}
 }
 
@@ -86,29 +87,32 @@ DBF::~DBF()
 
 std::unordered_map<std::string, std::string> DBF::get_record_with_names(int record)
 {
-	this->_cursor = this->_header.HeaderSize + (this->_header.RecordSize * record) + 1;
-	this->_file.seekg(_cursor, std::ios::beg);
-
+	this->move_to_record(record);
 	return this->get_record_with_names();
 }
 
 std::vector<std::string> DBF::get_record(int record)
 {
-	this->_cursor = this->_header.HeaderSize + (this->_header.RecordSize * record) + 1;
-	this->_file.seekg(this->_cursor, std::ios::beg);
-
+	this->move_to_record(record);
 	return this->get_record();
 }
 
-void DBF::move_to_next_record()
+void DBF::move_to_record(int record)
 {
-	this->_cursor = this->_cursor + this->_header.RecordSize + 1;
-	this->_file.seekg(sizeof(char), std::ios::cur);
+	this->_file.seekg(this->_header.HeaderSize + (this->_header.RecordSize * record), std::ios::beg);
+}
+
+void DBF::skip_delete_mark()
+{
+	const int deleteMark = sizeof(char);
+	this->_file.seekg(deleteMark, std::ios::cur);
 }
 
 std::unordered_map<std::string, std::string> DBF::get_record_with_names()
 {
 	std::unordered_map<std::string, std::string> result;
+
+	this->skip_delete_mark();
 
 	for(const DBF::_Field_& field : this->_fields)
 	{
@@ -125,6 +129,8 @@ std::unordered_map<std::string, std::string> DBF::get_record_with_names()
 std::vector<std::string> DBF::get_record()
 {
 	std::vector <std::string> result;
+
+	this->skip_delete_mark();
 
 	for(const DBF::_Field_& field : this->_fields)
 	{
@@ -149,8 +155,10 @@ void DBF::rename_field(int field, std::string newName)
 
 		if(newName.size() <= FieldWidth)
 		{
+			int lastPoistion = this->_file.tellg();
 			this->_file.seekg(replaced.Offset, std::ios::beg);
 			this->_file.write(newName.data(), FieldWidth);
+			this->_file.seekg(lastPoistion, std::ios::beg);
 		}
 	}
 }
@@ -171,8 +179,9 @@ void DBF::replace_record(int record, std::vector<std::string> new_record)
 	{
 		if(new_record.size() <= this->_fields.size())
 		{
-			int position = this->_header.HeaderSize + ( this->_header.RecordSize * record);
-			this->_file.seekg(position, std::ios::beg);
+			this->move_to_record(record);
+			this->skip_delete_mark();
+
 			for(decltype(this->_fields)::size_type i = 0; i < new_record.size(); ++i)
 			{
 				const DBF::_Field_& field = this->_fields.at(i);
@@ -191,13 +200,16 @@ void DBF::replace_record(int record, int column, std::string new_record)
 		{
 			if(column < this->_fields.size())
 			{
-				const int position = this->_header.HeaderSize + ( this->_header.RecordSize * record) + sizeof (char);
-				int Offset = position;
+				this->move_to_record(record);
+				this->skip_delete_mark();
+
+				int Offset = 0 ;
+
 				for( decltype(this->_fields)::size_type i = 0; i < column; ++i)
 				{
 					Offset += this->_fields.at(i).Width;
 				}
-				this->_file.seekg(Offset, std::ios::beg);
+				this->_file.seekg(Offset, std::ios::cur);
 
 				const DBF::_Field_& field = this->_fields.at(column);
 				char buffer[field.Width];
@@ -214,8 +226,10 @@ void DBF::replace_record(int record, std::string column, std::string new_record)
 {
 	if(this->_header.FileSize > record)
 	{
-		const int position = this->_header.HeaderSize + ( this->_header.RecordSize * record) + sizeof (char);
-		int Offset = position;
+		this->move_to_record(record);
+		this->skip_delete_mark();
+
+		int Offset = 0;
 
 		DBF::_Field_* field = nullptr;
 
@@ -232,7 +246,7 @@ void DBF::replace_record(int record, std::string column, std::string new_record)
 
 		if(field != nullptr)
 		{
-			this->_file.seekg(Offset, std::ios::beg);
+			this->_file.seekg(Offset, std::ios::cur);
 
 			char buffer[field->Width];
 			memset(buffer, '\0', field->Width);
@@ -245,14 +259,13 @@ void DBF::replace_record(int record, std::string column, std::string new_record)
 
 void DBF::add_record()
 {
-	int lastRecordTail = this->_header.HeaderSize + (this->_header.RecordSize * this->_header.FileSize);
-
-	const int RecordSize = this->_header.RecordSize;
+	const int deleteMark = sizeof(char);
+	const int RecordSize = this->_header.RecordSize + deleteMark;
 
 	char buffer[RecordSize];
 	memset(buffer, ' ', RecordSize);
 
-	this->_file.seekg(lastRecordTail, std::ios::beg);
+	this->move_to_record(this->_header.FileSize);
 	this->_file.write(buffer, RecordSize);
 	this->end();
 
@@ -262,7 +275,8 @@ void DBF::add_record()
 
 void DBF::insert_record(int record)
 {
-	const int RecordSize = this->_header.RecordSize;
+	const int deleteMark = sizeof(char);
+	const int RecordSize = this->_header.RecordSize + deleteMark;
 	const int RecordCount = this->_header.FileSize;
 	int lastRecordTail = this->_header.HeaderSize + (RecordSize * RecordCount);
 
@@ -290,8 +304,7 @@ void DBF::insert_record(int record)
 
 void DBF::delete_record(int record)
 {
-	int position = this->_header.HeaderSize + (this->_header.RecordSize * record);
-	this->_file.seekg(position, std::ios::beg);
+	this->move_to_record(record);
 	char mark = '*';
 	this->_file.write(&mark, sizeof(mark));
 }

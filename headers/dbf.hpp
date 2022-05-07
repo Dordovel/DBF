@@ -52,18 +52,18 @@ class DBF
 		std::vector<struct DBF::_Field_> _fields;
 
 		std::fstream _file;
-		int _cursor;
 
 		void loadDbfTableFields();
 		void loadDbfTableStructure();
 		void flushHeaderChange();
 		void end();
+		void move_to_record(int record);
+		void skip_delete_mark();
 
 	public:
 		void loadDbf(const std::string& filePath);
 		std::unordered_map<std::string, std::string> get_record_with_names(int record);
 		std::vector<std::string> get_record(int record);
-		void move_to_next_record();
 		std::unordered_map<std::string, std::string> get_record_with_names();
 		std::vector<std::string> get_record();
 		void replace_record(int record, std::vector<std::string> new_record);

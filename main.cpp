@@ -29,6 +29,7 @@ int main(int argc, char* argv[])
 
 	if(view != nullptr)
 	{
+		view->set_size_request(700, 500);
 		view->convert_from("CP866");
 		view->load(std::move(dbf_file));
 	}
