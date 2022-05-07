@@ -2,6 +2,7 @@
 #define VIEW
 
 #include "dbf.hpp"
+#include "gtkmm/treepath.h"
 #include <array>
 #include <gtkmm/window.h>
 #include <gtkmm/builder.h>
@@ -28,9 +29,12 @@ class View : public Gtk::Window
 		void view_header(std::vector<Field> fields);
 		void view_record(std::vector<std::string> record);
 		void view_panel(Header header);
+		void view_edit(int id);
 		std::string encode_value(std::string value);
 		std::string parse_value(std::string date, char type);
 		std::string parse_date(std::string date);
+
+		void signal_edit(const Gtk::TreePath& path, Gtk::TreeViewColumn* column);
 
 	public:
 		View(Gtk::Window::BaseObjectType* cobject,

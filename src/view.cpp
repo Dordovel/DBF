@@ -2,10 +2,12 @@
 // Created by user on 5/6/22.
 //
 
+#include <iostream>
 #include <memory>
 #include <langinfo.h>
 #include "../headers/view.hpp"
 #include "../headers/converter.hpp"
+#include "gtkmm/button.h"
 
 static inline std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
@@ -102,9 +104,56 @@ void View::view_panel(Header header)
 	Date->pack_start(*DateHeader, false, false, 0);
 	Date->pack_start(*DateLabel, false, false, 0);
 
+	for(auto* child : this->_box->get_children())
+	{
+		this->_box->remove(*child);
+	}
+
 	this->_box->pack_start(*Tag, false, false, 0);
 	this->_box->pack_start(*Records, false, false, 0);
 	this->_box->pack_start(*Date, false, false, 0);
+	this->_box->set_size_request(300, 300);
+	this->_box->show_all_children();
+}
+
+void View::view_edit(int id)
+{
+	const auto&& record = this->_dbf_file.get_record_with_names(id - 1);
+	
+	for(auto* child : this->_box->get_children())
+	{
+		this->_box->remove(*child);
+	}
+	
+	for(const auto& column : record)
+	{
+		Gtk::Label* field = Gtk::manage(new Gtk::Label());
+		field->set_size_request(100);
+		field->set_alignment(Gtk::ALIGN_START);
+		field->set_label(column.first);
+
+		Gtk::Entry* value = Gtk::manage(new Gtk::Entry());
+		value->set_text(this->encode_value(column.second));
+
+		Gtk::Box* box = Gtk::manage(new Gtk::Box());
+		box->pack_start(*field, false, false, 0);
+		box->pack_start(*value, true, true, 0);
+
+		this->_box->set_spacing(20);
+		this->_box->pack_start(*box, false, false, 0);
+	}
+
+	Gtk::Button* saveBtn = Gtk::manage(new Gtk::Button());
+	saveBtn->set_label("Сохранить");
+
+	Gtk::Button* deleteBtn = Gtk::manage(new Gtk::Button());
+	deleteBtn->set_label("Удалить");
+
+	Gtk::Box* box = Gtk::manage(new Gtk::Box());
+	box->pack_start(*saveBtn, true, true, 0);
+	box->pack_start(*deleteBtn, false, false, 0);
+		
+	this->_box->pack_start(*box, false, false, 0);
 	this->_box->set_size_request(300, 300);
 	this->_box->show_all_children();
 }
@@ -140,6 +189,15 @@ std::string View::parse_date(std::string date)
 	return day + "-" + month + "-" + year;
 }
 
+void View::signal_edit(const Gtk::TreePath& path, Gtk::TreeViewColumn* column)
+{
+	auto selection = this->_view->get_selection();
+	auto selectedIter = selection->get_selected();
+	auto value = selectedIter->get_value(this->_id);
+
+	this->view_edit(value);
+}
+
 void View::load(DBF&& dbf)
 {
 	this->_dbf_file = std::move(dbf);
@@ -162,6 +220,7 @@ void View::load(DBF&& dbf)
 			auto&& record = this->_dbf_file.get_record();
 			this->view_record(std::move(record));
 		}
+		this->_view->signal_row_activated().connect(sigc::mem_fun(this,&View::signal_edit));
 	}
 
 	if(this->_box)
