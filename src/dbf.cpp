@@ -103,7 +103,7 @@ std::vector<std::string> DBF::get_record(int record)
 void DBF::move_to_next_record()
 {
 	this->_cursor = this->_cursor + this->_header.RecordSize + 1;
-	this->_file.seekg(this->_cursor, std::ios::cur);
+	this->_file.seekg(sizeof(char), std::ios::cur);
 }
 
 std::unordered_map<std::string, std::string> DBF::get_record_with_names()

@@ -5,7 +5,7 @@
 #include <memory>
 #include <langinfo.h>
 #include "../headers/view.hpp"
-#include "../converter.hpp"
+#include "../headers/converter.hpp"
 
 static inline std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {

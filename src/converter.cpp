@@ -1,6 +1,8 @@
-#include <string>
 #include <iconv.h>
 #include <cstring>
+#include <stdexcept>
+
+#include "../headers/converter.hpp"
 
 std::string convert_encoding(const std::string& src, const std::string& from, const std::string& to)
 {
