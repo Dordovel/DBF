@@ -22,8 +22,6 @@ View::View(Gtk::Window::BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder
 	m_RefGlade->get_widget("Table", this->_view);
 	m_RefGlade->get_widget("Panel", this->_box);
 
-	this->_systemEncoding = nl_langinfo(CODESET);
-
 	this->_record.add(this->_id);
 	this->_view->append_column("ID", this->_id);
 }
@@ -118,22 +116,25 @@ void View::view_panel(Header header)
 
 void View::view_edit(int id)
 {
-	const auto&& record = this->_dbf_file.get_record_with_names(id - 1);
+	const auto&& record = this->_dbf_file.get_record(id - 1);
 	
 	for(auto* child : this->_box->get_children())
 	{
 		this->_box->remove(*child);
 	}
 	
-	for(const auto& column : record)
+	for(int i = 0; i < record.size(); ++i)
 	{
+		const auto&& fieldInfo = this->_dbf_file.get_field_info(i);
+
 		Gtk::Label* field = Gtk::manage(new Gtk::Label());
-		field->set_size_request(100);
+		field->set_size_request(150);
 		field->set_alignment(Gtk::ALIGN_START);
-		field->set_label(column.first);
+		field->set_label(std::string(fieldInfo.Name) + " (" + std::to_string(fieldInfo.Width) + ")");
 
 		Gtk::Entry* value = Gtk::manage(new Gtk::Entry());
-		value->set_text(this->encode_value(column.second));
+		value->set_max_length(fieldInfo.Width);
+		value->set_text(this->encode_value(record[i]));
 
 		Gtk::Box* box = Gtk::manage(new Gtk::Box());
 		box->pack_start(*field, false, false, 0);
@@ -220,6 +221,7 @@ void View::load(DBF&& dbf)
 			auto&& record = this->_dbf_file.get_record();
 			this->view_record(std::move(record));
 		}
+		this->_view->signal_remove();
 		this->_view->signal_row_activated().connect(sigc::mem_fun(this,&View::signal_edit));
 	}
 
@@ -232,4 +234,5 @@ void View::load(DBF&& dbf)
 void View::convert_from(std::string fileEncoding)
 {
 	this->_fileEncoding = std::move(fileEncoding);
+	this->_systemEncoding = nl_langinfo(CODESET);
 }
