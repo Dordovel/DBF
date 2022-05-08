@@ -23,6 +23,7 @@ View::View(Gtk::Window::BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder
 	m_RefGlade->get_widget("Table", this->_view);
 	m_RefGlade->get_widget("Panel", this->_box);
 	m_RefGlade->get_widget("Filter", this->_filter);
+	m_RefGlade->get_widget("ClosePanel", this->_closePanelBtn);
 
 	this->_filter->signal_changed().connect(sigc::mem_fun(this, &View::signal_entry_change));
 
@@ -64,8 +65,10 @@ void View::view_record(std::vector<std::string> record)
 	}
 }
 
-void View::view_panel(Header header)
+void View::view_dbf_header_panel()
 {
+	Header header = this->_dbf_file.get_header_info();
+
 	Gtk::Box* Tag = Gtk::manage(new Gtk::Box());
 	Gtk::Label* TagHeader = Gtk::manage(new Gtk::Label());
 	TagHeader->set_label("Наличие файла примечаний (DBT): ");
@@ -120,7 +123,7 @@ void View::view_panel(Header header)
 	this->_box->show_all_children();
 }
 
-void View::view_edit(int id)
+void View:: view_record_edit_panel(int id)
 {
 	const auto&& record = this->_dbf_file.get_record(id - 1);
 	
@@ -146,7 +149,6 @@ void View::view_edit(int id)
 		box->pack_start(*field, false, false, 0);
 		box->pack_start(*value, true, true, 0);
 
-		this->_box->set_spacing(20);
 		this->_box->pack_start(*box, false, false, 0);
 	}
 
@@ -161,7 +163,6 @@ void View::view_edit(int id)
 	box->pack_start(*deleteBtn, false, false, 0);
 		
 	this->_box->pack_start(*box, false, false, 0);
-	this->_box->set_size_request(300, 300);
 	this->_box->show_all_children();
 }
 
@@ -202,7 +203,7 @@ void View::signal_edit(const Gtk::TreePath& path, Gtk::TreeViewColumn* column)
 	auto selectedIter = selection->get_selected();
 	auto value = selectedIter->get_value(this->_id);
 
-	this->view_edit(value);
+	this->view_record_edit_panel(value);
 }
 
 bool View::signal_row_visible (const Gtk::TreeModel::const_iterator& iter)
@@ -253,13 +254,16 @@ void View::load(DBF&& dbf)
 			auto&& record = this->_dbf_file.get_record();
 			this->view_record(std::move(record));
 		}
-		this->_view->signal_remove();
 		this->_view->signal_row_activated().connect(sigc::mem_fun(this,&View::signal_edit));
 	}
 
 	if(this->_box)
 	{
-		this->view_panel(dbf.get_header_info());
+		if(this->_closePanelBtn)
+		{
+			this->_closePanelBtn->signal_clicked().connect(sigc::mem_fun(this, &View::view_dbf_header_panel));
+		}
+		this->view_dbf_header_panel();
 	}
 }
 
