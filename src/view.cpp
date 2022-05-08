@@ -8,6 +8,7 @@
 #include "../headers/view.hpp"
 #include "../headers/converter.hpp"
 #include "gtkmm/button.h"
+#include "sigc++/functors/mem_fun.h"
 
 static inline std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
@@ -21,6 +22,9 @@ View::View(Gtk::Window::BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder
 {
 	m_RefGlade->get_widget("Table", this->_view);
 	m_RefGlade->get_widget("Panel", this->_box);
+	m_RefGlade->get_widget("Filter", this->_filter);
+
+	this->_filter->signal_changed().connect(sigc::mem_fun(this, &View::signal_entry_change));
 
 	this->_record.add(this->_id);
 	this->_view->append_column("ID", this->_id);
@@ -35,7 +39,9 @@ void View::view_header(std::vector<Field> fields)
 	}
 
 	this->_treeModel = Gtk::ListStore::create(this->_record);
-	this->_view->set_model(this->_treeModel);
+	this->_filterModel = Gtk::TreeModelFilter::create(this->_treeModel);
+	this->_filterModel->set_visible_func(sigc::mem_fun(this, &View::signal_row_visible));
+	this->_view->set_model(this->_filterModel);
 
 	for(decltype (fields)::size_type i = 0; i < fields.size(); ++i)
 	{
@@ -197,6 +203,32 @@ void View::signal_edit(const Gtk::TreePath& path, Gtk::TreeViewColumn* column)
 	auto value = selectedIter->get_value(this->_id);
 
 	this->view_edit(value);
+}
+
+bool View::signal_row_visible (const Gtk::TreeModel::const_iterator& iter)
+{
+	if(this->_filter)
+	{
+		std::string text = this->_filter->get_text();
+		if(!text.empty())
+		{
+			for(const auto& column : this->_columns)
+			{
+				if(iter->get_value(column).find(text) != std::string::npos)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+	}
+	return true;
+}
+
+void View::signal_entry_change()
+{
+	this->_filterModel->refilter();
 }
 
 void View::load(DBF&& dbf)

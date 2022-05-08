@@ -2,21 +2,27 @@
 #define VIEW
 
 #include "dbf.hpp"
+#include "gtkmm/entry.h"
+#include "gtkmm/treemodel.h"
 #include "gtkmm/treepath.h"
 #include <array>
 #include <gtkmm/window.h>
 #include <gtkmm/builder.h>
 #include <gtkmm/liststore.h>
 #include <gtkmm/treeview.h>
+#include <gtkmm/treemodelfilter.h>
 #include <gtkmm/box.h>
+#include <gtkmm/treestore.h>
 
 class View : public Gtk::Window
 {
 	private:
 		Gtk::Box* _box = nullptr;
+		Gtk::Entry* _filter = nullptr;
 
 		Gtk::TreeView* _view = nullptr;
 		Glib::RefPtr<Gtk::ListStore> _treeModel;
+		Glib::RefPtr<Gtk::TreeModelFilter> _filterModel;
 
 		Gtk::TreeModel::ColumnRecord _record;
 		std::vector<Gtk::TreeModelColumn<std::string>> _columns;
@@ -35,6 +41,8 @@ class View : public Gtk::Window
 		std::string parse_date(std::string date);
 
 		void signal_edit(const Gtk::TreePath& path, Gtk::TreeViewColumn* column);
+		bool signal_row_visible (const Gtk::TreeModel::const_iterator& iter);
+		void signal_entry_change();
 
 	public:
 		View(Gtk::Window::BaseObjectType* cobject,
