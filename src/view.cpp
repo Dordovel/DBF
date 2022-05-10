@@ -60,14 +60,14 @@ void View::view_record(std::vector<std::string> record)
 
 	for(decltype(this->_columns)::size_type i = 0; i < this->_columns.size(); ++i)
 	{
-		Field&& field = this->_dbf_file.get_field_info(i);
+		Field&& field = this->_dbf_file->get_field_info(i);
 		refRecord[this->_columns[i]] = this->parse_value(this->encode_value(record[i]), field.Type);
 	}
 }
 
 void View::view_dbf_header_panel()
 {
-	Header header = this->_dbf_file.get_header_info();
+	Header header = this->_dbf_file->get_header_info();
 
 	Gtk::Box* Tag = Gtk::manage(new Gtk::Box());
 	Gtk::Label* TagHeader = Gtk::manage(new Gtk::Label());
@@ -123,18 +123,23 @@ void View::view_dbf_header_panel()
 	this->_box->show_all_children();
 }
 
-void View:: view_record_edit_panel(int id)
+void View:: view_record_edit_panel(unsigned long id)
 {
-	const auto&& record = this->_dbf_file.get_record(id - 1);
+	const unsigned long recordId = id - 1;
+
+	const auto&& record = this->_dbf_file->get_record(recordId);
 	
 	for(auto* child : this->_box->get_children())
 	{
 		this->_box->remove(*child);
 	}
+
+	std::vector<Gtk::Entry*> entry;
+	entry.reserve(record.size());
 	
 	for(int i = 0; i < record.size(); ++i)
 	{
-		const auto&& fieldInfo = this->_dbf_file.get_field_info(i);
+		const auto&& fieldInfo = this->_dbf_file->get_field_info(i);
 
 		Gtk::Label* field = Gtk::manage(new Gtk::Label());
 		field->set_size_request(150);
@@ -150,13 +155,26 @@ void View:: view_record_edit_panel(int id)
 		box->pack_start(*value, true, true, 0);
 
 		this->_box->pack_start(*box, false, false, 0);
+
+		entry.push_back(value);
 	}
 
 	Gtk::Button* saveBtn = Gtk::manage(new Gtk::Button());
 	saveBtn->set_label("Сохранить");
+	saveBtn->signal_clicked().connect(
+			[
+				this,
+				entries = std::move(entry),
+				recordId
+			]
+			()
+			{
+				this->signal_save_record(recordId, entries);
+			});
 
 	Gtk::Button* deleteBtn = Gtk::manage(new Gtk::Button());
 	deleteBtn->set_label("Удалить");
+	deleteBtn->signal_clicked().connect([this, recordId](){this->signal_delete_record(recordId);});
 
 	Gtk::Box* box = Gtk::manage(new Gtk::Box());
 	box->pack_start(*saveBtn, true, true, 0);
@@ -182,7 +200,7 @@ std::string View::parse_value(std::string date, char type)
 	switch (type)
 	{
 		case 'D':
-			return this->parse_date(date);
+			return this->parse_date(std::move(date));
 		default:
 			return date;
 	}
@@ -190,6 +208,8 @@ std::string View::parse_value(std::string date, char type)
 
 std::string View::parse_date(std::string date)
 {
+	if(date.empty()) return "";
+
 	std::string year = date.substr(0, 4);
 	std::string month = date.substr(4, 2);
 	std::string day = date.substr(6, 2);
@@ -232,26 +252,56 @@ void View::signal_entry_change()
 	this->_filterModel->refilter();
 }
 
-void View::load(DBF&& dbf)
+void View::signal_delete_record(int recordId)
 {
-	this->_dbf_file = std::move(dbf);
+	this->_dbf_file->delete_record(recordId);
+}
+
+void View::signal_save_record(unsigned long recordId, std::vector<Gtk::Entry*> entries)
+{
+	if(entries.empty()) return;
+
+	std::vector<std::string> dbf_record;
+	dbf_record.reserve(entries.size());
+
+	auto children = this->_treeModel->children();
+	auto child = children[recordId];
+
+	for( decltype(this->_columns)::size_type i = 0; i < this->_columns.size(); ++i)
+	{
+		std::string new_value = entries[i]->get_text();
+		std::string converted_value = convert_encoding(new_value, this->_systemEncoding, this->_fileEncoding);
+
+		Field&& field = this->_dbf_file->get_field_info(i);
+		child[this->_columns[i]] = this->parse_value(new_value, field.Type);
+		dbf_record.emplace_back(converted_value);
+	}
+
+	this->_dbf_file->replace_record(recordId, dbf_record);
+
+}
+
+void View::load(DBF* dbf)
+{
+	this->_dbf_file = dbf;
 
 	if(this->_view)
 	{
 		std::vector<Field> fields;
-		const std::size_t fieldsCount = this->_dbf_file.get_fields_count();
+
+		const std::size_t fieldsCount = this->_dbf_file->get_fields_count();
 		for(int i = 0; i < fieldsCount; ++i)
 		{
-			Field&& info = this->_dbf_file.get_field_info(i);
+			Field&& info = this->_dbf_file->get_field_info(i);
 			fields.emplace_back(std::move(info));
 		}
 
 		this->view_header(std::move(fields));
 
-		const std::size_t recordsCount = this->_dbf_file.get_record_count();
+		const std::size_t recordsCount = this->_dbf_file->get_record_count();
 		for(int i = 0; i < recordsCount; ++i)
 		{
-			auto&& record = this->_dbf_file.get_record();
+			auto&& record = this->_dbf_file->get_record();
 			this->view_record(std::move(record));
 		}
 		this->_view->signal_row_activated().connect(sigc::mem_fun(this,&View::signal_edit));

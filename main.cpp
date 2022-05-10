@@ -6,7 +6,7 @@ int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "");
 
-	std::string filePath;
+	/**std::string filePath;
 
 	for (int i = 0; i < argc; ++i)
 	{
@@ -20,7 +20,9 @@ int main(int argc, char* argv[])
 
 	DBF dbf_file;
 	dbf_file.loadDbf(filePath);
-
+**/
+	DBF dbf_file;
+	dbf_file.loadDbf("./1.DBF");
 	Glib::RefPtr<Gtk::Application> app = Gtk::Application::create("View");
 	Glib::RefPtr<Gtk::Builder> builder = Gtk::Builder::create();
 	builder->add_from_file("./Main.glade");
@@ -29,9 +31,9 @@ int main(int argc, char* argv[])
 
 	if(view != nullptr)
 	{
-		view->set_size_request(700, 500);
+		view->set_size_request(1500, 800);
 		view->convert_from("CP866");
-		view->load(std::move(dbf_file));
+		view->load(&dbf_file);
 	}
 
 	app->run(*view);

@@ -30,14 +30,14 @@ class View : public Gtk::Window
 		std::vector<Gtk::TreeModelColumn<std::string>> _columns;
 		Gtk::TreeModelColumn<std::size_t> _id;
 
-		DBF _dbf_file;
+		DBF* _dbf_file;
 		char* _systemEncoding = nullptr;
 		std::string _fileEncoding;
 
 		void view_header(std::vector<Field> fields);
 		void view_record(std::vector<std::string> record);
 		void view_dbf_header_panel();
-		void view_record_edit_panel(int id);
+		void view_record_edit_panel(unsigned long id);
 		std::string encode_value(std::string value);
 		std::string parse_value(std::string date, char type);
 		std::string parse_date(std::string date);
@@ -45,12 +45,14 @@ class View : public Gtk::Window
 		void signal_edit(const Gtk::TreePath& path, Gtk::TreeViewColumn* column);
 		bool signal_row_visible (const Gtk::TreeModel::const_iterator& iter);
 		void signal_entry_change();
+		void signal_delete_record(int recordId);
+		void signal_save_record(unsigned long recordId, std::vector<Gtk::Entry*> entries);
 
 	public:
 		View(Gtk::Window::BaseObjectType* cobject,
 			 const Glib::RefPtr<Gtk::Builder>& m_RefGlade);
 
 		void convert_from(std::string fileEncoding);
-		void load(DBF&& dbf);
+		void load(DBF* dbf);
 };
 #endif // VIEW

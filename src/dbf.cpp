@@ -182,11 +182,16 @@ void DBF::replace_record(int record, std::vector<std::string> new_record)
 			this->move_to_record(record);
 			this->skip_delete_mark();
 
-			for(decltype(this->_fields)::size_type i = 0; i < new_record.size(); ++i)
+			for(decltype(this->_fields)::size_type i = 0; i < this->_fields.size(); ++i)
 			{
-				const DBF::_Field_& field = this->_fields.at(i);
-				std::string new_value = new_record.at(i);
-				this->_file.write((char*)new_value.c_str(), field.Width);
+				const DBF::_Field_& field = this->_fields[i];
+				std::string new_value = std::move(new_record[i]);
+
+				char buffer[field.Width];
+				memset(buffer, '\0', field.Width);
+				memcpy(buffer, new_value.data(), new_value.size());
+
+				this->_file.write(buffer, field.Width);
 			}
 		}
 	}
@@ -207,11 +212,11 @@ void DBF::replace_record(int record, int column, std::string new_record)
 
 				for( decltype(this->_fields)::size_type i = 0; i < column; ++i)
 				{
-					Offset += this->_fields.at(i).Width;
+					Offset += this->_fields[i].Width;
 				}
 				this->_file.seekg(Offset, std::ios::cur);
 
-				const DBF::_Field_& field = this->_fields.at(column);
+				const DBF::_Field_& field = this->_fields[column];
 				char buffer[field.Width];
 				memset(buffer, '\0', field.Width);
 				memcpy(buffer, new_record.data(), new_record.size());
