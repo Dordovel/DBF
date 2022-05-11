@@ -14,6 +14,10 @@
 #include <gtkmm/treemodelfilter.h>
 #include <gtkmm/box.h>
 #include <gtkmm/treestore.h>
+#include <glibmm/dispatcher.h>
+#include <thread>
+#include <condition_variable>
+#include <atomic>
 
 class View : public Gtk::Window
 {
@@ -21,6 +25,16 @@ class View : public Gtk::Window
 		Gtk::Box* _box = nullptr;
 		Gtk::Entry* _filter = nullptr;
 		Gtk::Button* _closePanelBtn;
+		Glib::Dispatcher _dataLoadDispatcher;
+		Gtk::Button* _dataLoadCancelButton;
+		Gtk::Box* _dataLoadContainer;
+
+		std::thread _dataLoadThread;
+		std::unique_ptr<std::vector<std::vector<std::string>>> _dataLoadBuffer = nullptr;
+		std::mutex _dataLoadMutex;
+		std::condition_variable _dataLoadCV;
+		std::atomic_bool _dataLoadStatus;
+		typename decltype(View::_dataLoadBuffer)::element_type::size_type _dataLoadBufferSize;
 
 		Gtk::TreeView* _view = nullptr;
 		Glib::RefPtr<Gtk::ListStore> _treeModel;
@@ -47,11 +61,16 @@ class View : public Gtk::Window
 		void signal_entry_change();
 		void signal_delete_record(int recordId);
 		void signal_save_record(unsigned long recordId, std::vector<Gtk::Entry*> entries);
+		void signal_data_load_cancel_button();
+
+		void data_load_worker();
+		void data_update_worker();
 
 	public:
 		View(Gtk::Window::BaseObjectType* cobject,
 			 const Glib::RefPtr<Gtk::Builder>& m_RefGlade);
 
+		~View();
 		void convert_from(std::string fileEncoding);
 		void load(DBF* dbf);
 };

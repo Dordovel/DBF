@@ -24,4 +24,10 @@ pkg_check_modules(ATKMM atkmm-1.6)
 link_directories(${ATKMM_LIBRARY_DIRS})
 include_directories(${ATKMM_INCLUDE_DIRS})
 
+find_package(Threads)
+if (THREADS_FOUND)
+    message("Threads Found")
+    target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+endif()
+
 target_link_libraries(${PROJECT_NAME} ${GTKMM_LIBRARIES})

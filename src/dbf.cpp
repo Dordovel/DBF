@@ -129,6 +129,7 @@ std::unordered_map<std::string, std::string> DBF::get_record_with_names()
 std::vector<std::string> DBF::get_record()
 {
 	std::vector <std::string> result;
+	result.reserve(this->_fields.size());
 
 	this->skip_delete_mark();
 
@@ -139,7 +140,8 @@ std::vector<std::string> DBF::get_record()
 
 		std::streamsize size = this->_file.read(buffer, field.Width).gcount();
 
-		result.emplace_back(std::string(buffer, size));
+		std::string value = std::string(buffer,field.Width);
+		result.push_back(std::move(value));
 	}
 
 	return result;
