@@ -3,8 +3,8 @@
 #include <algorithm>
 #include "../headers/dbf.hpp"
 
-template <typename T, size_t G>
-size_t array_size(T(&array)[G])
+template <typename T, std::size_t G>
+std::size_t array_size(T(&array)[G])
 {
 	return G;
 }
@@ -85,19 +85,19 @@ DBF::~DBF()
 	}
 }
 
-std::unordered_map<std::string, std::string> DBF::get_record_with_names(int record)
+std::unordered_map<std::string, std::string> DBF::get_record_with_names(std::size_t record)
 {
 	this->move_to_record(record);
-	return this->get_record_with_names();
+	return this->get_next_record_with_names();
 }
 
-std::vector<std::string> DBF::get_record(int record)
+std::vector<std::string> DBF::get_record(std::size_t record)
 {
 	this->move_to_record(record);
-	return this->get_record();
+	return this->get_next_record();
 }
 
-void DBF::move_to_record(int record)
+void DBF::move_to_record(std::size_t record)
 {
 	this->_file.seekg(this->_header.HeaderSize + (this->_header.RecordSize * record), std::ios::beg);
 }
@@ -108,7 +108,7 @@ void DBF::skip_delete_mark()
 	this->_file.seekg(deleteMark, std::ios::cur);
 }
 
-std::unordered_map<std::string, std::string> DBF::get_record_with_names()
+std::unordered_map<std::string, std::string> DBF::get_next_record_with_names()
 {
 	std::unordered_map<std::string, std::string> result;
 
@@ -126,7 +126,7 @@ std::unordered_map<std::string, std::string> DBF::get_record_with_names()
 	return result;
 }
 
-std::vector<std::string> DBF::get_record()
+std::vector<std::string> DBF::get_next_record()
 {
 	std::vector <std::string> result;
 	result.reserve(this->_fields.size());
@@ -147,7 +147,7 @@ std::vector<std::string> DBF::get_record()
 	return result;
 }
 
-void DBF::rename_field(int field, std::string newName)
+void DBF::rename_field(std::size_t field, std::string newName)
 {
 	if(field >= 0 && field < this->_fields.size())
 	{
@@ -175,7 +175,7 @@ int DBF::get_record_count() const
 	return this->_header.FileSize;
 }
 
-void DBF::replace_record(int record, std::vector<std::string> new_record)
+void DBF::replace_record(std::size_t record, std::vector<std::string> new_record)
 {
 	if(this->_header.FileSize > record)
 	{
@@ -199,7 +199,7 @@ void DBF::replace_record(int record, std::vector<std::string> new_record)
 	}
 }
 
-void DBF::replace_record(int record, int column, std::string new_record)
+void DBF::replace_record(std::size_t record, std::size_t column, std::string new_record)
 {
 	if(this->_header.FileSize > record)
 	{
@@ -229,7 +229,7 @@ void DBF::replace_record(int record, int column, std::string new_record)
 	}
 }
 
-void DBF::replace_record(int record, std::string column, std::string new_record)
+void DBF::replace_record(std::size_t record, std::string column, std::string new_record)
 {
 	if(this->_header.FileSize > record)
 	{
@@ -280,7 +280,7 @@ void DBF::add_record()
 	this->flushHeaderChange();
 }
 
-void DBF::insert_record(int record)
+void DBF::insert_record(std::size_t record)
 {
 	const int deleteMark = sizeof(char);
 	const int RecordSize = this->_header.RecordSize + deleteMark;
@@ -309,7 +309,7 @@ void DBF::insert_record(int record)
 	this->flushHeaderChange();
 }
 
-void DBF::delete_record(int record)
+void DBF::delete_record(std::size_t record)
 {
 	this->move_to_record(record);
 	char mark = '*';
@@ -324,7 +324,7 @@ Header DBF::get_header_info() const
 	return new_header;
 }
 
-Field DBF::get_field_info(int field) const
+Field DBF::get_field_info(std::size_t field) const
 {
 	Field new_field;
 

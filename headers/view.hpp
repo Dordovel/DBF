@@ -25,16 +25,12 @@ class View : public Gtk::Window
 		Gtk::Box* _box = nullptr;
 		Gtk::Entry* _filter = nullptr;
 		Gtk::Button* _closePanelBtn;
-		Glib::Dispatcher _dataLoadDispatcher;
-		Gtk::Button* _dataLoadCancelButton;
+		Gtk::Button* _dataLoadNextPageButton;
+		Gtk::Button* _dataLoadPrevPageButton;
+		Gtk::Label* _dataLoadPageLabel;
 		Gtk::Box* _dataLoadContainer;
-
-		std::thread _dataLoadThread;
-		std::unique_ptr<std::vector<std::vector<std::string>>> _dataLoadBuffer = nullptr;
-		std::mutex _dataLoadMutex;
-		std::condition_variable _dataLoadCV;
-		std::atomic_bool _dataLoadStatus;
-		typename decltype(View::_dataLoadBuffer)::element_type::size_type _dataLoadBufferSize;
+		std::size_t _currentPage;
+		std::size_t _elementPerPage;
 
 		Gtk::TreeView* _view = nullptr;
 		Glib::RefPtr<Gtk::ListStore> _treeModel;
@@ -51,7 +47,7 @@ class View : public Gtk::Window
 		void view_header(std::vector<Field> fields);
 		void view_record(std::vector<std::string> record);
 		void view_dbf_header_panel();
-		void view_record_edit_panel(unsigned long id);
+		void view_record_edit_panel(std::size_t id);
 		std::string encode_value(std::string value);
 		std::string parse_value(std::string date, char type);
 		std::string parse_date(std::string date);
@@ -59,18 +55,19 @@ class View : public Gtk::Window
 		void signal_edit(const Gtk::TreePath& path, Gtk::TreeViewColumn* column);
 		bool signal_row_visible (const Gtk::TreeModel::const_iterator& iter);
 		void signal_entry_change();
-		void signal_delete_record(int recordId);
-		void signal_save_record(unsigned long recordId, std::vector<Gtk::Entry*> entries);
-		void signal_data_load_cancel_button();
+		void signal_delete_record(std::size_t recordId);
+		void signal_save_record(std::size_t recordId, std::vector<Gtk::Entry*> entries);
+		void signal_data_load_next_page_button();
+		void signal_data_load_prev_page_button();
 
-		void data_load_worker();
-		void data_update_worker();
+		void update_page_label();
+		void read_page();
 
 	public:
 		View(Gtk::Window::BaseObjectType* cobject,
 			 const Glib::RefPtr<Gtk::Builder>& m_RefGlade);
 
-		~View();
+		~View() = default;
 		void convert_from(std::string fileEncoding);
 		void load(DBF* dbf);
 };

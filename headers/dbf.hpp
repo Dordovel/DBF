@@ -57,26 +57,26 @@ class DBF
 		void loadDbfTableStructure();
 		void flushHeaderChange();
 		void end();
-		void move_to_record(int record);
 		void skip_delete_mark();
 
 	public:
 		void loadDbf(const std::string& filePath);
-		std::unordered_map<std::string, std::string> get_record_with_names(int record);
-		std::vector<std::string> get_record(int record);
-		std::unordered_map<std::string, std::string> get_record_with_names();
-		std::vector<std::string> get_record();
-		void replace_record(int record, std::vector<std::string> new_record);
-		void replace_record(int record, int column, std::string new_record);
-		void replace_record(int record, std::string column, std::string new_record);
-		void rename_field(int field, std::string newName);
+		std::unordered_map<std::string, std::string> get_record_with_names(std::size_t record);
+		std::vector<std::string> get_record(std::size_t record);
+		std::unordered_map<std::string, std::string> get_next_record_with_names();
+		std::vector<std::string> get_next_record();
+		void move_to_record(std::size_t record);
+		void replace_record(std::size_t record, std::vector<std::string> new_record);
+		void replace_record(std::size_t record, std::size_t column, std::string new_record);
+		void replace_record(std::size_t record, std::string column, std::string new_record);
+		void rename_field(std::size_t field, std::string newName);
 		int get_fields_count() const;
 		int get_record_count() const;
 		void add_record();
-		void insert_record(int record);
-		void delete_record(int record);
+		void insert_record(std::size_t record);
+		void delete_record(std::size_t record);
 		Header get_header_info() const;
-		Field get_field_info(int field) const;
+		Field get_field_info(std::size_t field) const;
 		void pack();
 
 		DBF() = default;

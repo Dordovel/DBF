@@ -5,10 +5,12 @@
 #include <iostream>
 #include <memory>
 #include <langinfo.h>
+#include "gtkmm/button.h"
+#include "gtkmm/enums.h"
+#include "sigc++/functors/mem_fun.h"
+
 #include "../headers/view.hpp"
 #include "../headers/converter.hpp"
-#include "gtkmm/button.h"
-#include "sigc++/functors/mem_fun.h"
 
 static inline std::string rtrim(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
@@ -24,30 +26,19 @@ View::View(Gtk::Window::BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder
 	m_RefGlade->get_widget("Panel", this->_box);
 	m_RefGlade->get_widget("Filter", this->_filter);
 	m_RefGlade->get_widget("ClosePanel", this->_closePanelBtn);
-	m_RefGlade->get_widget("Cancel", this->_dataLoadCancelButton);
+	m_RefGlade->get_widget("PrevPage", this->_dataLoadPrevPageButton);
+	m_RefGlade->get_widget("Pages", this->_dataLoadPageLabel);
+	m_RefGlade->get_widget("NextPage", this->_dataLoadNextPageButton);
 	m_RefGlade->get_widget("LoadBox", this->_dataLoadContainer);
 
-	if(this->_dataLoadCancelButton)
-	{
-		this->_dataLoadCancelButton->signal_clicked().connect(sigc::mem_fun(this, &View::signal_data_load_cancel_button));
-	}
+	this->_dataLoadPrevPageButton->signal_clicked().connect(sigc::mem_fun(this, &View::signal_data_load_prev_page_button));
+	this->_dataLoadNextPageButton->signal_clicked().connect(sigc::mem_fun(this, &View::signal_data_load_next_page_button));
+	this->_currentPage = 1;
+	this->_elementPerPage = 200;
 
 	this->_filter->signal_changed().connect(sigc::mem_fun(this, &View::signal_entry_change));
-	this->_dataLoadBuffer = std::make_unique<decltype(View::_dataLoadBuffer)::element_type>();
-	this->_dataLoadBufferSize = 50;
-
-	this->_dataLoadDispatcher.connect(sigc::mem_fun(this, &View::data_update_worker));
 	this->_record.add(this->_id);
 	this->_view->append_column("ID", this->_id);
-}
-
-View::~View()
-{
-	this->_dataLoadStatus.store(false);
-	if(this->_dataLoadThread.joinable())
-	{
-		this->_dataLoadThread.join();
-	}
 }
 
 void View::view_header(std::vector<Field> fields)
@@ -80,54 +71,8 @@ void View::view_record(std::vector<std::string> record)
 	for(decltype(this->_columns)::size_type i = 0; i < this->_columns.size(); ++i)
 	{
 		Field&& field = this->_dbf_file->get_field_info(i);
-		const char* val = record[i].c_str();
 		refRecord[this->_columns[i]] = this->parse_value(this->encode_value(record[i]), field.Type);
 	}
-}
-
-void View::data_load_worker()
-{
-	typename decltype(View::_dataLoadBuffer)::element_type::size_type size = this->_dataLoadBufferSize;
-
-	const std::size_t recordsCount = this->_dbf_file->get_record_count();
-
-	for ( std::size_t i = recordsCount; i > 0 ; i -= size )
-	{
-		if(i <= size)
-		{
-			size = i;
-		}
-
-		if(!this->_dataLoadStatus) break;
-
-		std::unique_lock<std::mutex> unique(this->_dataLoadMutex);
-
-		for ( decltype(size) a = 0; a < size; ++a )
-		{
-			auto record = this->_dbf_file->get_record();
-			this->_dataLoadBuffer->emplace_back(std::move(record));
-		}
-
-		this->_dataLoadDispatcher.emit();
-		this->_dataLoadCV.wait(unique);
-	}
-
-	if(this->_dataLoadContainer)
-	{
-		this->_dataLoadContainer->hide();
-	}
-}
-
-void View::data_update_worker()
-{
-	for(auto begin = this->_dataLoadBuffer->begin(); begin != this->_dataLoadBuffer->end(); ++begin)
-	{
-		this->view_record(*begin);
-	}
-
-	this->_dataLoadBuffer->clear();
-
-	this->_dataLoadCV.notify_one();
 }
 
 void View::load(DBF* dbf)
@@ -146,9 +91,8 @@ void View::load(DBF* dbf)
 		}
 
 		this->view_header(std::move(fields));
-
-		this->_dataLoadStatus.store(true);
-		this->_dataLoadThread = std::thread(&View::data_load_worker, this);
+		this->update_page_label();
+		this->read_page();
 
 		this->_view->signal_row_activated().connect(sigc::mem_fun(this,&View::signal_edit));
 	}
@@ -196,7 +140,7 @@ void View::view_dbf_header_panel()
 
 	Gtk::Box* LoadRecords = Gtk::manage(new Gtk::Box());
 	Gtk::Label* LoadRecordHeader = Gtk::manage(new Gtk::Label());
-	LoadRecordHeader->set_label("Количество записей: ");
+	LoadRecordHeader->set_label("Количество записей загружено: ");
 
 	Gtk::Label* LoadRecordCount = Gtk::manage(new Gtk::Label());
 	LoadRecordCount->set_label(std::to_string(this->_treeModel->children().size()));
@@ -360,12 +304,12 @@ void View::signal_entry_change()
 	this->_filterModel->refilter();
 }
 
-void View::signal_delete_record(int recordId)
+void View::signal_delete_record(std::size_t recordId)
 {
 	this->_dbf_file->delete_record(recordId);
 }
 
-void View::signal_save_record(unsigned long recordId, std::vector<Gtk::Entry*> entries)
+void View::signal_save_record(std::size_t recordId, std::vector<Gtk::Entry*> entries)
 {
 	if(entries.empty()) return;
 
@@ -385,13 +329,51 @@ void View::signal_save_record(unsigned long recordId, std::vector<Gtk::Entry*> e
 		dbf_record.emplace_back(converted_value);
 	}
 
+	const int dbfRecordId = this->_currentPage + this->_elementPerPage + recordId;
 	this->_dbf_file->replace_record(recordId, dbf_record);
-
 }
 
-void View::signal_data_load_cancel_button()
+void View::update_page_label()
 {
-	this->_dataLoadStatus.store(false);
+	const int pageCount = this->_dbf_file->get_header_info().FileSize / this->_elementPerPage;
+	this->_dataLoadPageLabel->set_label(
+		std::to_string(this->_currentPage)
+		+ "/"
+		+ std::to_string(pageCount));
+}
+
+void View::read_page()
+{
+	this->_treeModel->clear();
+	for ( std::size_t i = 0; i < this->_elementPerPage; ++i )
+	{
+		auto record = this->_dbf_file->get_next_record();
+		this->view_record(std::move(record));
+	}
+}
+
+void View::signal_data_load_next_page_button()
+{
+	const int pageCount = this->_dbf_file->get_header_info().FileSize / this->_elementPerPage;
+	if(this->_currentPage < pageCount)
+	{
+		this->_currentPage++;
+		this->update_page_label();
+		this->read_page();
+	}
+}
+
+void View::signal_data_load_prev_page_button()
+{
+	if(this->_currentPage > 1)
+	{
+		const std::size_t recordPointer = ( this->_currentPage * this->_elementPerPage ) - (this->_elementPerPage * 2);
+		this->_dbf_file->move_to_record(recordPointer);
+
+		this->_currentPage--;
+		this->update_page_label();
+		this->read_page();
+	}
 }
 
 void View::convert_from(std::string fileEncoding)

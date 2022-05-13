@@ -6,11 +6,11 @@ int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "");
 
-	/**std::string filePath;
+	std::string filePath;
 
 	for (int i = 0; i < argc; ++i)
 	{
-		if( strcmp(argv[i], "-f") == 0)
+		if( strcmp(argv[i], "-f") == 0 && i < argc - 1)
 		{
 			filePath = argv[ i + 1 ];
 		}
@@ -20,9 +20,6 @@ int main(int argc, char* argv[])
 
 	DBF dbf_file;
 	dbf_file.loadDbf(filePath);
-	 **/
-	DBF dbf_file;
-	dbf_file.loadDbf("./COMPLU_OUT.DBF");
 
 	Glib::RefPtr<Gtk::Application> app = Gtk::Application::create("View");
 	Glib::RefPtr<Gtk::Builder> builder = Gtk::Builder::create();
