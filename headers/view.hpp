@@ -62,6 +62,7 @@ class View : public Gtk::Window
 
 		void update_page_label();
 		void read_page();
+		std::size_t convert_page_to_dbf_record(std::size_t viewRecordId);
 
 	public:
 		View(Gtk::Window::BaseObjectType* cobject,

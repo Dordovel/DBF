@@ -178,9 +178,9 @@ void View::view_dbf_header_panel()
 
 void View:: view_record_edit_panel(unsigned long id)
 {
-	const unsigned long recordId = id - 1;
-
-	const auto&& record = this->_dbf_file->get_record(recordId);
+	const std::size_t recordId = id - 1;
+	const std::size_t dbfRecordId = this->convert_page_to_dbf_record(recordId);
+	const auto&& record = this->_dbf_file->get_record(dbfRecordId);
 	
 	for(auto* child : this->_box->get_children())
 	{
@@ -329,8 +329,8 @@ void View::signal_save_record(std::size_t recordId, std::vector<Gtk::Entry*> ent
 		dbf_record.emplace_back(converted_value);
 	}
 
-	const int dbfRecordId = this->_currentPage + this->_elementPerPage + recordId;
-	this->_dbf_file->replace_record(recordId, dbf_record);
+	const std::size_t dbfRecordId = this->convert_page_to_dbf_record(recordId);
+	this->_dbf_file->replace_record(dbfRecordId, dbf_record);
 }
 
 void View::update_page_label()
@@ -350,6 +350,11 @@ void View::read_page()
 		auto record = this->_dbf_file->get_next_record();
 		this->view_record(std::move(record));
 	}
+}
+
+std::size_t View::convert_page_to_dbf_record(std::size_t viewRecordId)
+{
+	return (this->_currentPage - 1) * this->_elementPerPage + viewRecordId;
 }
 
 void View::signal_data_load_next_page_button()
