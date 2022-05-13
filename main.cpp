@@ -8,12 +8,9 @@ int main(int argc, char* argv[])
 
 	std::string filePath;
 
-	for (int i = 0; i < argc; ++i)
+	if(argc > 1)
 	{
-		if( strcmp(argv[i], "-f") == 0 && i < argc - 1)
-		{
-			filePath = argv[ i + 1 ];
-		}
+		filePath = argv[1];
 	}
 
 	if(filePath.empty()) return EXIT_FAILURE;

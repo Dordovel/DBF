@@ -84,6 +84,10 @@
                       <object class="GtkTreeView" id="Table">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="reorderable">True</property>
+                        <property name="hover-selection">True</property>
+                        <property name="enable-tree-lines">True</property>
+                        <property name="activate-on-single-click">True</property>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection"/>
                         </child>
