@@ -230,7 +230,7 @@ void View:: view_record_edit_panel(unsigned long id)
 	deleteBtn->signal_clicked().connect([this, recordId](){this->signal_delete_record(recordId);});
 
 	Gtk::Box* box = Gtk::manage(new Gtk::Box());
-	box->pack_start(*saveBtn, true, true, 0);
+	box->pack_start(*saveBtn, true, true, 5);
 	box->pack_start(*deleteBtn, false, false, 0);
 		
 	this->_box->pack_start(*box, false, false, 0);

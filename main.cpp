@@ -1,6 +1,7 @@
 #include "./headers/dbf.hpp"
 #include <langinfo.h>
 #include "headers/view.hpp"
+#include "gtkmm/cssprovider.h"
 
 int main(int argc, char* argv[])
 {
@@ -30,6 +31,15 @@ int main(int argc, char* argv[])
 		view->convert_from("CP866");
 		view->load(&dbf_file);
 	}
+
+	auto css = Gtk::CssProvider::create();
+	if(!css->load_from_path("./style/general.css"))
+	{
+		return EXIT_FAILURE;
+	}
+	auto screen = Gdk::Screen::get_default();
+	auto ctx = view->get_style_context();
+	ctx->add_provider_for_screen(screen, css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
 	app->run(*view);
 	return EXIT_SUCCESS;
