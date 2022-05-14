@@ -2,6 +2,7 @@
 // Created by user on 5/6/22.
 //
 
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <langinfo.h>
@@ -140,7 +141,7 @@ void View::view_dbf_header_panel()
 
 	Gtk::Box* LoadRecords = Gtk::manage(new Gtk::Box());
 	Gtk::Label* LoadRecordHeader = Gtk::manage(new Gtk::Label());
-	LoadRecordHeader->set_label("Количество записей загружено: ");
+	LoadRecordHeader->set_label("Количество загруженных записей: ");
 
 	Gtk::Label* LoadRecordCount = Gtk::manage(new Gtk::Label());
 	LoadRecordCount->set_label(std::to_string(this->_treeModel->children().size()));
@@ -335,7 +336,7 @@ void View::signal_save_record(std::size_t recordId, std::vector<Gtk::Entry*> ent
 
 void View::update_page_label()
 {
-	const int pageCount = this->_dbf_file->get_header_info().FileSize / this->_elementPerPage;
+	const int pageCount = std::ceil(this->_dbf_file->get_header_info().FileSize / static_cast<float>(this->_elementPerPage));
 	this->_dataLoadPageLabel->set_label(
 		std::to_string(this->_currentPage)
 		+ "/"
@@ -345,7 +346,23 @@ void View::update_page_label()
 void View::read_page()
 {
 	this->_treeModel->clear();
-	for ( std::size_t i = 0; i < this->_elementPerPage; ++i )
+	std::size_t elementPerPage = this->_elementPerPage;
+
+	float allPages = this->_dbf_file->get_header_info().FileSize / static_cast<float>(this->_elementPerPage);
+	std::size_t fullPages = static_cast<int>(allPages);
+	std::size_t elementsOnFullPages = fullPages * this->_elementPerPage;
+	std::size_t tailPageElementCount = this->_dbf_file->get_header_info().FileSize - elementsOnFullPages;
+	std::size_t tailPage = std::ceil(allPages);
+
+	if(tailPage > 0)
+	{
+		if(this->_currentPage == tailPage)
+		{
+			elementPerPage = tailPageElementCount;
+		}
+	}
+
+	for ( std::size_t i = 0; i < elementPerPage; ++i )
 	{
 		auto record = this->_dbf_file->get_next_record();
 		this->view_record(std::move(record));
