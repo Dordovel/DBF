@@ -381,6 +381,9 @@ void View::signal_data_load_next_page_button()
 	const int pageCount = this->_dbf_file->get_header_info().FileSize / this->_elementPerPage;
 	if(this->_currentPage < pageCount)
 	{
+		const std::size_t recordPointer = ( this->_currentPage * this->_elementPerPage)
+		this->_dbf_file->move_to_record(recordPointer);
+
 		this->_currentPage++;
 		this->update_page_label();
 		this->read_page();
