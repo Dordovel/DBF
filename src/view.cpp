@@ -371,8 +371,6 @@ void View::read_page()
 
 std::size_t View::convert_page_to_dbf_record(std::size_t viewRecordId)
 {
-	std::cout<<"Page: "<<this->_currentPage - 1 <<" Elements: "<<this->_elementPerPage<<" ID: "<<viewRecordId<<" Result: "<<(this->_currentPage - 1) * this->_elementPerPage + viewRecordId
-<<std::endl;
 	return (this->_currentPage - 1) * this->_elementPerPage + viewRecordId;
 }
 
