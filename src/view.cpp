@@ -219,11 +219,11 @@ void View:: view_record_edit_panel(unsigned long id)
 			[
 				this,
 				entries = std::move(entry),
-				recordId
+				dbfRecordId
 			]
 			()
 			{
-				this->signal_save_record(recordId, entries);
+				this->signal_save_record(dbfRecordId, entries);
 			});
 
 	Gtk::Button* deleteBtn = Gtk::manage(new Gtk::Button());
@@ -371,6 +371,8 @@ void View::read_page()
 
 std::size_t View::convert_page_to_dbf_record(std::size_t viewRecordId)
 {
+	std::cout<<"Page: "<<this->_currentPage - 1 <<" Elements: "<<this->_elementPerPage<<" ID: "<<viewRecordId<<" Result: "<<(this->_currentPage - 1) * this->_elementPerPage + viewRecordId
+<<std::endl;
 	return (this->_currentPage - 1) * this->_elementPerPage + viewRecordId;
 }
 
